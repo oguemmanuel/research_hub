@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*{
+  margin: 0;
+  padding: 0;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.link {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: #222;
+  transition: all 300ms ease;
+}
+
+.link:hover{
+  color: rgb(194, 104, 7);
+}
+
