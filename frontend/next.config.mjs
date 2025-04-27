@@ -1,4 +1,25 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {};
-
-export default nextConfig;
+const nextConfig = {
+    async rewrites() {
+      return [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:5000/api/:path*",
+        },
+      ];
+    },
+    async headers() {
+      return [
+        {
+          source: "/api/:path*",
+          headers: [
+            {
+              key: "Access-Control-Allow-Credentials",
+              value: "true",
+            },
+          ],
+        },
+      ];
+    },
+  };
+  export default nextConfig;
+  

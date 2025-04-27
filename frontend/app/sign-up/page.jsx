@@ -2,218 +2,195 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
 import Link from 'next/link';
-import { User, Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 
-export default function SignUpPage() {
+export default function SignUp() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    indexNumber: '',
   });
-  const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const router = useRouter();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [hasIndexNumber, setHasIndexNumber] = useState(false);
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    
-    if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  // List of valid index numbers (could be moved to a configuration file)
+  const validIndexNumbers = [
+    'UGR0202110312', 'UGR0202110315', 'UGR0202110313', 'UGR0202110334',
+    'UGR0202110320', 'UGR0202110333', 'UGR0202120027', 'UGR0202120028',
+    'UGR0202120031', 'UGR0202110006', 'UGR0402210132', 'UGR0402111248',
+    'UGR0402111239', 'UGR0202120017'
+  ];
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
-
-  const handleSignUp = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+    setLoading(true);
+    setError('');
+
+    // Client-side validation for index number if the user has chosen to provide one
+    if (hasIndexNumber && !formData.indexNumber) {
+      setError('Index number is required if selected');
+      setLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    // Check if the index number is in the valid list (only if user has chosen to provide one)
+    if (hasIndexNumber && !validIndexNumbers.includes(formData.indexNumber)) {
+      setError('Invalid index number. Please enter an authorized index number.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Simulated API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      sessionStorage.setItem('isLoggedIn', true);
-      router.push('/user-interface');
-    } catch (error) {
-      console.error('Sign up failed:', error);
+      // If user doesn't have an index number, remove it from the request
+      const requestData = {...formData};
+      if (!hasIndexNumber) {
+        requestData.indexNumber = ''; // Send empty string to ensure it's not included
+      }
+
+      const res = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+        credentials: 'include',  // Important for session-based authentication
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Something went wrong');
+      }
+
+      console.log('User created successfully, session is stored on the server');
+      router.push('/sign-in'); // Redirect to the sign-in page after successful signup
+    } catch (err) {
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200 p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="text-gray-500">Join us today and get started</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Create your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            {hasIndexNumber 
+              ? 'With index number (for project submission privileges)' 
+              : 'Without index number (limited to viewing projects)'}
+          </p>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSignUp} className="space-y-4">
-          {/* Username Input */}
-          <div className="space-y-1">
-            <label htmlFor="username" className="sr-only">Username</label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input 
-                id="username"
+        
+        <div className="flex justify-center mb-4">
+          <button
+            type="button"
+            onClick={() => setHasIndexNumber(!hasIndexNumber)}
+            className="text-indigo-600 hover:text-indigo-500 font-medium"
+          >
+            {hasIndexNumber 
+              ? <p className={"bg-blue-600 py-3 px-4 text-white rounded-md cursor-pointer text-2xl"}>Sign up with email</p>
+              : <p className={"bg-blue-600 py-3 px-4 text-white rounded-md cursor-pointer text-2xl"}>Sign up with an index number</p>}
+          </button>
+        </div>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          <div className="rounded-md shadow-sm space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+              <input
+                id="name"
+                name="name"
                 type="text"
-                name="username"
-                placeholder="Username"
-                value={formData.username}
-                onChange={handleChange}
-                className={`pl-10 w-full h-12 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`}
+                required
+                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
-            {errors.username && (
-              <p className="text-sm text-red-500">{errors.username}</p>
-            )}
-          </div>
-
-          {/* Email Input */}
-          <div className="space-y-1">
-            <label htmlFor="email" className="sr-only">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input 
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+              <input
                 id="email"
-                type="email"
                 name="email"
+                type="email"
+                required
+                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Email address"
                 value={formData.email}
-                onChange={handleChange}
-                className={`pl-10 w-full h-12 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email}</p>
+            
+            {hasIndexNumber && (
+              <div>
+                <label htmlFor="indexNumber" className="block text-sm font-medium text-gray-700">Index Number</label>
+                <input
+                  id="indexNumber"
+                  name="indexNumber"
+                  type="text"
+                  required={hasIndexNumber}
+                  className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Index Number (e.g., UGR0202110312)"
+                  value={formData.indexNumber}
+                  onChange={(e) => setFormData({ ...formData, indexNumber: e.target.value })}
+                  pattern="^UGR\d{10}$"
+                  title="Index number must be UGR followed by 10 digits"
+                />
+                <p className="mt-1 text-xs text-gray-500">Format: UGR followed by 10 digits</p>
+              </div>
             )}
-          </div>
-
-          {/* Password Input */}
-          <div className="space-y-1">
-            <label htmlFor="password" className="sr-only">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input 
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+              <input
                 id="password"
-                type={showPassword ? "text" : "password"}
                 name="password"
+                type="password"
+                required
+                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Password"
                 value={formData.password}
-                onChange={handleChange}
-                className={`pl-10 pr-10 w-full h-12 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                minLength={8}
               />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
+              <p className="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
             </div>
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password}</p>
-            )}
           </div>
 
-          {/* Confirm Password Input */}
-          <div className="space-y-1">
-            <label htmlFor="confirmPassword" className="sr-only">Confirm Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input 
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                placeholder="Confirm password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`pl-10 pr-10 w-full h-12 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500`}
-              />
-              <button 
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            {errors.confirmPassword && (
-              <p className="text-sm text-red-500">{errors.confirmPassword}</p>
-            )}
-          </div>
-
-          {/* Sign Up Button */}
-          <Button 
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <Loader2 className="animate-spin h-5 w-5 mr-2" />
-                Creating Account...
-              </div>
-            ) : (
-              'Sign Up'
-            )}
-          </Button>
-
-          {/* Login Link */}
-          <div className="text-center">
-            <p className="text-gray-500">
-              Already have an account?{' '}
-              <Link 
-                href="/login" 
-                className="text-blue-500 hover:text-blue-600 font-medium transition-colors"
-              >
-                Sign In
-              </Link>
-            </p>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
+            >
+              {loading ? 'Creating account...' : 'Sign up'}
+            </button>
           </div>
         </form>
+        <div className="text-center flex flex-col gap-4">
+          <Link
+            href="/sign-in"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            Already have an account? Sign in
+          </Link>
+          <Link href="/admin" className='text-indigo-600 hover:text-indigo-500'>
+            Admin Login
+          </Link>
+        </div>
       </div>
     </div>
   );

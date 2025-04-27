@@ -2,51 +2,31 @@
 
 import React from 'react';
 
-
-import { DownOutlined, SmileOutlined } from '@ant-design/icons';
-import { Dropdown, Space } from 'antd';
-const items = [
-  {
-    key: '1',
-    label: (
-      <a target="_blank">
-        Italian
-      </a>
-    ),
-  },
-  {
-    key: '2',
-    label: (
-      <a target="_blank">
-        Fench
-      </a>
-    ),
-  },
-  {
-    key: '3',
-    label: (
-      <a target="_blank">
-        English
-      </a>
-    ),
-  },
-  {
-    key: '4',
-    label: 'Spanish',
-  },
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'it', label: 'Italian' },
+  { code: 'fr', label: 'French' }
 ];
-const DropdownMenuBox = () => (
-  <Dropdown
-    menu={{
-      items,
-    }}
-  >
-    <a onClick={(e) => e.preventDefault()}>
-      <Space className='bg-blue-500 text-white px-3 py-2 rounded-md cursor-pointer'>
-        Select Language
-        <DownOutlined />
-      </Space>
-    </a>
-  </Dropdown>
-);
+
+const DropdownMenuBox = ({ onLanguageChange }) => {
+  const handleChange = (e) => {
+    onLanguageChange(e.target.value);
+  };
+
+  return (
+    <select 
+      onChange={handleChange}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+    >
+      <option value="" disabled selected>Select Language</option>
+      {LANGUAGES.map((lang) => (
+        <option key={lang.code} value={lang.code}>
+          {lang.label}
+        </option>
+      ))}
+    </select>
+  );
+};
+
 export default DropdownMenuBox;
